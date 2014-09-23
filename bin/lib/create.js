@@ -67,6 +67,8 @@ module.exports.run = function (argv) {
     shell.cp("-rf", path.join(platformRoot, 'VERSION'), projectPath);
     // copy the defaults.xml into config.xml so this project can be built when create is called minus the cordova-cli
     shell.cp(path.join(projectPath, "cordova", "defaults.xml"), path.join(projectPath, "config.xml"));
+    // copy node_modules
+    shell.cp('-r', path.join(platformRoot, 'node_modules'), path.join(projectPath, 'cordova'));
 
     // if any custom template is provided, just copy it over created project
     if (customTemplate && fs.existsSync(customTemplate)) {
