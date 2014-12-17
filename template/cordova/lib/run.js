@@ -22,6 +22,7 @@ var Q = require('q'),
     path  = require('path'),
     build = require('./build'),
     utils = require('./utils'),
+    logger = require('./logger'),
     packages = require('./package');
 
 var ROOT = path.join(__dirname, '..', '..');
@@ -57,7 +58,7 @@ module.exports.run = function (argv) {
         return packages.getPackage(buildType, buildArchs[0]);
     })
     .then(function(builtPackage) {
-        console.log('\nDeploying package to ' + deployTarget);
+        logger.normal('\nDeploying package to ' + deployTarget);
         return builtPackage.deployTo(deployTarget);
     });
 };

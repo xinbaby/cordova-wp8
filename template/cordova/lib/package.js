@@ -21,8 +21,9 @@ var Q     = require('q'),
     fs    = require('fs'),
     path  = require('path'),
     shell = require('shelljs'),
-    device = require ('./device'),
-    utils = require('./utils');
+    utils = require('./utils'),
+    logger = require('./logger'),
+    device = require ('./device');
 
 function Package (packagepath) {
     this.packagePath = packagepath;
@@ -32,10 +33,11 @@ Package.prototype.deployTo = function (deployTarget) {
     var pkg = this;
     return utils.getXapDeploy()
     .then(function (xapDeploy) {
-        var getTarget = deployTarget == "device" ? Q("de") :
-            deployTarget == "emulator" ? Q("xd") : device.findDevice(deployTarget);
+        var getTarget = deployTarget === "device" ? Q("de") :
+            deployTarget === "emulator" ? Q("xd") : device.findDevice(deployTarget);
 
         return getTarget.then(function (target) {
+            logger.verbose('Deploying package to ' + deployTarget);
             return utils.spawn(xapDeploy, ['/installlaunch', pkg.packagePath, '/targetdevice:' + target]);
         });
     });
@@ -44,7 +46,7 @@ Package.prototype.deployTo = function (deployTarget) {
 // returns full path to package with chip architecture, build and project types specified
 module.exports.getPackage = function (buildtype, buildarch) {
     var projectPath = path.resolve(path.join(__dirname, '..', '..'));
-    var buildFolder = buildarch.toLowerCase() == 'anycpu' ?
+    var buildFolder = buildarch.toLowerCase() === 'anycpu' ?
         path.join(projectPath, 'Bin', buildtype) :
         path.join(projectPath, 'Bin', buildarch, buildtype);
 
@@ -57,6 +59,7 @@ module.exports.getPackage = function (buildtype, buildarch) {
     var appxFiles = shell.ls(path.join(buildFolder, '*.xap'));
     if (appxFiles && appxFiles[0]) {
         // resolve with full path to file if found
+        logger.verbose('Found appx package for ' + [buildtype, buildarch] + ': ' + appxFiles[0]);
         return Q.resolve(new Package(appxFiles[0]));
     }
     // else reject with error

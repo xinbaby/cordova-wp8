@@ -19,16 +19,19 @@
        under the License.
 */
 
-var args = process.argv,
-    run   = require('./lib/run');
+var args   = process.argv,
+    run    = require('./lib/run'),
+    logger = require('./lib/logger');
 
 // Handle help flag
 if (['--help', '/?', '-h', 'help', '-help', '/help'].indexOf(args[2]) > -1) {
     run.help();
 } else {
-    run.run(args).done(null, function (err) {
+    run.run(args).done(function () {
+        logger.info('Run successful');
+    }, function (err) {
         var errorMessage = (err && err.stack) ? err.stack : err;
-        console.error('ERROR: ' + errorMessage);
+        logger.error(errorMessage);
         process.exit(2);
     });
 }

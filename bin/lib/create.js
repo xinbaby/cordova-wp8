@@ -21,7 +21,8 @@ var Q     = require('Q'),
     fs    = require('fs'),
     path  = require('path'),
     shell = require('shelljs'),
-    uuid  = require('node-uuid');
+    uuid  = require('node-uuid'),
+    logger = require('../../template/cordova/lib/logger');
 
 var defaultAppName = "CordovaWP8AppProj";
 var defaultSlnName = "CordovaWP8Solution";
@@ -52,15 +53,15 @@ module.exports.run = function (argv) {
         templatePath = path.join(platformRoot, "template"),
         customTemplate = args[3];
 
-    console.log("Creating Cordova Windows Project:");
-    console.log("\tApp Name  : " + appName);
-    console.log("\tNamespace : " + packageName);
-    console.log("\tPath      : " + projectPath);
+    logger.normal("Creating Cordova Windows Project:");
+    logger.normal("\tApp Name  : " + appName);
+    logger.normal("\tNamespace : " + packageName);
+    logger.normal("\tPath      : " + projectPath);
     if (customTemplate) {
-        console.log("Custom template path: " + customTemplate);
+        logger.verbose("Custom template path: " + customTemplate);
     }
 
-    console.log('Copying necessary files to ' + projectPath);
+    logger.verbose('Copying template files to ' + projectPath);
     // Copy the template source files to the new destination
     shell.cp("-rf", path.join(templatePath, '*'), projectPath);
     // Copy our unique VERSION file, so peeps can tell what version this project was created from.
@@ -72,11 +73,11 @@ module.exports.run = function (argv) {
 
     // if any custom template is provided, just copy it over created project
     if (customTemplate && fs.existsSync(customTemplate)) {
-        console.log('Copying template overrides from ' + customTemplate + ' to ' + projectPath);
+        logger.verbose('Copying template overrides from ' + customTemplate + ' to ' + projectPath);
         shell.cp("-rf", customTemplate, projectPath);
     }
 
-    console.log("Updating project files");
+    logger.verbose("Updating project files");
     // replace values in the AppManifest
     var wmAppManifest = path.join(projectPath, "Properties", "WMAppManifest.xml"),
         guid = uuid.v1();
@@ -89,7 +90,8 @@ module.exports.run = function (argv) {
         shell.sed("-i", /\$safeprojectname\$/g, packageName, path.join(projectPath, file));
     });
     
-    if (appName != defaultAppName) {
+    if (appName !== defaultAppName) {
+        logger.verbose('Renaming project to ' + appName);
         var slnFile = path.join(projectPath, defaultSlnName + ".sln"),
             csprojFile = path.join(projectPath, defaultAppName + ".csproj");
 

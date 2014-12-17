@@ -21,6 +21,7 @@ var Q    = require('Q'),
     fs   = require('fs'),
     path = require('path'),
     proc = require('child_process'),
+    logger = require('./logger'),
     msbuildTools = require('./MSBuildTools');
 
 // returns path to XapDeploy util from Windows Phone 8.1 SDK
@@ -29,9 +30,10 @@ module.exports.getXapDeploy = function () {
         'Microsoft SDKs', 'Windows Phone', 'v8.0', 'Tools', 'Xap Deployment', 'XapDeployCmd.exe');
     // Check if XapDeployCmd is exists
     if (!fs.existsSync(xapDeployUtils)) {
-        console.warn("WARNING: XapDeploy tool (XapDeployCmd.exe) didn't found. Assume that it's in %PATH%");
+        logger.warn("XapDeploy tool (XapDeployCmd.exe) didn't found. Assume that it's in %PATH%");
         return Q.resolve("XapDeployCmd");
     }
+    logger.verbose("XapDeploy tool found in "  + xapDeployUtils);
     return Q.resolve(xapDeployUtils);
 };
 
@@ -41,6 +43,7 @@ module.exports.getOSVersion = function () {
         // fetch msbuild path from 'reg' output
         var version = /CurrentVersion\s+REG_SZ\s+(.*)/i.exec(output);
         if (version) {
+            logger.verbose('Current OS version is ' + version[1]);
             return Q.resolve(version[1]);
         }
         return Q.reject('Can\'t fetch version number from reg output');
@@ -57,6 +60,7 @@ module.exports.getSDKVersion = function () {
         .then(function (output) {
             var version = /\.NET\sFramework\,\s[a-z]+\s(\d+\.\d+\.\d+)/gi.exec(output);
             if (version) {
+                logger.verbose('NET Framework version is ' + version[1]);
                 return Q.resolve(version[1]);
             }
             return Q.reject('Unable to get the .NET Framework version');
@@ -71,7 +75,7 @@ module.exports.isCordovaProject = function (platformpath) {
     if (fs.existsSync(platformpath)) {
         var files = fs.readdirSync(platformpath);
         for (var i in files){
-            if (path.extname(files[i]) == '.csproj'){
+            if (path.extname(files[i]) === '.csproj'){
                 return true;
             }
         }
@@ -85,22 +89,39 @@ module.exports.isCordovaProject = function (platformpath) {
 module.exports.exec = function(cmd, opt_cwd) {
     var d = Q.defer();
     try {
+        logger.verbose('Running ' + cmd);
         proc.exec(cmd, {cwd: opt_cwd, maxBuffer: 1024000}, function(err, stdout, stderr) {
             if (err) d.reject('Error executing "' + cmd + '": ' + stderr);
             else d.resolve(stdout);
         });
     } catch(e) {
-        console.error('error caught: ' + e);
+        logger.error('error caught: ' + e);
         d.reject(e);
     }
     return d.promise;
 };
 
 // Takes a command and optional current working directory.
-module.exports.spawn = function(cmd, args, opt_cwd) {
+module.exports.spawn = function(cmd, args, opt_cwd, opt_verbosity) {
     var d = Q.defer();
     try {
-        var child = proc.spawn(cmd, args, {cwd: opt_cwd, stdio: 'inherit'});
+        logger.verbose('Running ' + cmd + ' with ' + args);
+        
+        var child = proc.spawn(cmd, args, {cwd: opt_cwd}),
+            // use verbose log level for stdout if not specified
+            verbosity = opt_verbosity || 'verbose';
+
+        child.stdout && child.stdout.on('data', function (data) {
+            // child process' data from stdout always contains trailing endline
+            // remove it since logger's log method will add it again
+            logger.log(verbosity, data.toString().replace(/\n$/, ''));
+        });
+        child.stderr && child.stderr.on('data', function (data) {
+            // child process' data from stdout always contains trailing endline
+            // remove it since logger's log method will add it again
+            logger.error(data.toString().replace(/\n$/, ''));
+        });
+        
         child.on('exit', function(code) {
             if (code) {
                 d.reject('Error code ' + code + ' for command: ' + cmd + ' with args: ' + args);
@@ -109,7 +130,7 @@ module.exports.spawn = function(cmd, args, opt_cwd) {
             }
         });
     } catch(e) {
-        console.error('error caught: ' + e);
+        logger.error('error caught: ' + e);
         d.reject(e);
     }
     return d.promise;

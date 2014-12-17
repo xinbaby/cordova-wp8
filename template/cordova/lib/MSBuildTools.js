@@ -19,7 +19,8 @@
 
 var Q     = require('Q'),
     path  = require('path'),
-    utils = require('./utils');
+    utils = require('./utils'),
+    logger = require('./logger');
 
 function MSBuildTools (version, path) {
     this.version = version;
@@ -27,9 +28,9 @@ function MSBuildTools (version, path) {
 }
 
 MSBuildTools.prototype.buildProject = function(projFile, buildType, buildarch) {
-    console.log("\nBuilding project: " + projFile);
-    console.log("\tConfiguration : " + buildType);
-    console.log("\tPlatform      : " + buildarch);
+    logger.normal("\nBuilding project: " + projFile);
+    logger.normal("\tConfiguration : " + buildType);
+    logger.normal("\tPlatform      : " + buildarch);
 
     var args = ['/clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal', '/nologo',
     '/p:Configuration=' + buildType,
@@ -62,9 +63,11 @@ function checkMSBuildVersion(version, searchFor32Bit) {
         // fetch msbuild path from 'reg' output
         var path = /MSBuildToolsPath\s+REG_SZ\s+(.*)/i.exec(output);
         if (path) {
+            logger.verbose('Found MSBuild v' + version + ' at ' + path[1]);
             deferred.resolve(new MSBuildTools(version, path[1]));
             return;
         }
+        logger.verbose('MSBuild v' + version + ' not found');
         deferred.resolve(null); // not found
     }, function () {
         deferred.resolve(null);
