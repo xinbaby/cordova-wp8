@@ -16,12 +16,14 @@
     "dependencies": {
         "nopt": "~3",
         "shelljs": "~0.3",
+        "ansi": "^0.3.0",
         "node-uuid": "~1.4",
         "q": "~1"
     },
     "bundledDependencies": [
         "nopt",
         "shelljs",
+        "ansi",
         "node-uuid",
         "q"
     ],
