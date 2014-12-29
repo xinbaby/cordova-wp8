@@ -18,7 +18,7 @@
 */
 
 var devices = require('./device'),
-    args = process.argv.slice(2);
+    nopt = require('nopt');
 
 // help/usage function
 function help() {
@@ -36,14 +36,26 @@ function help() {
     console.log("");
 }
 
+var args  = nopt(
+    {"help": Boolean, "emulators": Boolean, "devices": Boolean, "started_emulators": Boolean, 
+    "all": Boolean}, 
+    {"help" : ["--help", "/?", "-h", "-help", "/help"]},
+    process.argv, 2);
+
 // Handle help flag
-if (['--help', '/?', '-h', 'help', '-help', '/help'].indexOf(args[0]) > -1) {
+if (args.help) {
     help();
-} else {
+    process.exit(0);
+} 
+
+if (args.devices) {
+    console.log("Device");
+} else if (args.emulators) {
     devices.listDevices()
     .then(function (deviceList) {
         deviceList.forEach(function (device) {
-            console.log(device);
+            if (device.trim() !== "Device")
+                console.log(device);
         });
     });
 }

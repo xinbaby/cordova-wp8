@@ -22,9 +22,28 @@ var Q = require('q'),
     path  = require('path'),
     build = require('./build'),
     utils = require('./utils'),
+    shell = require('shelljs'),
     packages = require('./package');
 
 var ROOT = path.join(__dirname, '..', '..');
+
+function getDevices() {
+    var str = '', temp = '';
+    str = 'Available Windows Phone 8 Devices:\n';
+    temp = shell.exec(path.join(__dirname, 'list-devices'), {silent:true}).output;
+    temp = temp.replace(/^(?=[^\s])/gm, '\t');
+    str += temp;
+    return str;
+}
+
+function getVirtualDevices() {
+    var str = '', temp = '';
+    str = 'Available Windows Phone 8 Virtual Devices:\n';
+    // temp = shell.exec(path.join(__dirname, 'list-emulator-images'), {silent:true}).output;
+    // temp = temp.replace(/^(?=[^\s])gm/, '\t');
+    str += temp;
+    return str;
+}
 
 module.exports.run = function (argv) {
     if (!utils.isCordovaProject(ROOT)){
@@ -33,7 +52,7 @@ module.exports.run = function (argv) {
 
     // parse args
     var args  = nopt({"debug": Boolean, "release": Boolean, "nobuild": Boolean,
-        "device": Boolean, "emulator": Boolean, "target": String, "archs": String},
+        "device": Boolean, "emulator": Boolean, "target": String, "archs": String, "list": Boolean},
         {"r" : "--release"}, argv);
 
     // Validate args
@@ -48,6 +67,21 @@ module.exports.run = function (argv) {
     var buildType    = args.release ? "release" : "debug",
         buildArchs   = args.archs ? args.archs.split(' ') : ["anycpu"],
         deployTarget = args.target ? args.target : args.device ? "device" : "emulator";
+
+    // if list is provided, show list
+    if (args.list) {
+        var output = '';
+        var temp = '';
+        if (!(args.device || args.emulator)) {
+            output += getDevices();
+            output += getVirtualDevices();
+        } else if (args.device) {
+            output += getDevices();
+        } else if (args.emulator) {
+            output += getVirtualDevices();
+        }
+        return Q.fcall(console.log.bind(null, output));
+    }
 
     // if --nobuild isn't specified then build app first
     var buildPackages = args.nobuild ? Q() : build.run(argv);
